@@ -1,7 +1,7 @@
 // Define canvas dimensions
 const canvasWidth = 800;
 const canvasHeight = 600;
-
+//
 // Create canvas element
 const canvas = document.createElement('canvas');
 canvas.width = canvasWidth;
