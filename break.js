@@ -1,112 +1,146 @@
-const mydocumentbody = document.getElementById('body')
-const blocks_container = document.querySelector('.blocks_container')
-const block = document.getElementById('main_block')
-let move = 360
-//container variables
-const containerWidth = 850
-const containerHeight = 530
-//score variables
-const scoreDisplay = document.querySelector('#score')
-let score = 0
-//ball variabales
-const ball = document.getElementById('ball')
-const ballDiameter = 25
-const ballStart = [380, 80]
-let ballCurrentPosition = ballStart
-let timerId
-let xDirection = 2
-let yDirection = 2
+// Define canvas dimensions
+const canvasWidth = 800;
+const canvasHeight = 600;
 
+// Create canvas element
+const canvas = document.createElement('canvas');
+canvas.width = canvasWidth;
+canvas.height = canvasHeight;
+document.body.appendChild(canvas);
+const context = canvas.getContext('2d');
 
+// Define paddle dimensions
+const paddleWidth = 100;
+const paddleHeight = 20;
+const paddleSpeed = 10;
 
+// Create paddle object
+const paddle = {
+  x: canvasWidth / 2 - paddleWidth / 2,
+  y: canvasHeight - paddleHeight - 10,
+  width: paddleWidth,
+  height: paddleHeight,
+  speed: paddleSpeed
+};
 
-//main_block movement
-mydocumentbody.addEventListener("keypress", blockMove);
-function blockMove(event){
-    let x = event.key;
-    if ((x === "a" || x === "A") && move >= 10 ) { 
-      block.style.left = move + "px" ; 
-      move -= 15;
-      console.log(move);
+// Keyboard event listeners to move the paddle
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'ArrowLeft' && paddle.x > 0) {
+    paddle.x -= paddle.speed;
+  } else if (event.key === 'ArrowRight' && paddle.x + paddle.width < canvasWidth) {
+    paddle.x += paddle.speed;
   }
-    else if ((x === "d" || x === "D") && move <= 730) { 
-      block.style.left = move + "px"; 
-      move += 15;
-      console.log(move);
-  }  
-}
-console.log(move);
+});
 
+// Define brick dimensions
+const brickRowCount = 5;
+const brickColumnCount = 8;
+const brickWidth = 80;
+const brickHeight = 20;
+const brickPadding = 10;
+const brickOffsetTop = 30;
+const brickOffsetLeft = 30;
 
-//block collision
-// function blockCollision(){
-//   block = changeDirection();
-// }
-
-
-
-
-//ball
-function drawBall(){
-  ball.style.left = ballCurrentPosition[0] + 'px'
-  ball.style.bottom = ballCurrentPosition[1] + 'px'
-}
-
-
-
-//ball moving
-function moveBall(){
-  ballCurrentPosition[0] += xDirection
-  ballCurrentPosition[1] += yDirection
-  drawBall()
-  checkForCollisions()
-  checkForGameOver()
-}
-
-timerId = setInterval(moveBall,10)
-
-
-//check for collisions
-function checkForCollisions(){
-  //check for wall collisions
-  if(ballCurrentPosition[0] >= (containerWidth - ballDiameter) ||
-     ballCurrentPosition[1] >= (containerHeight - ballDiameter) ||
-     ballCurrentPosition[0] <= 0 
-      ){
-  changeDirection()
+// Create bricks array
+const bricks = [];
+for (let c = 0; c < brickColumnCount; c++) {
+  bricks[c] = [];
+  for (let r = 0; r < brickRowCount; r++) {
+    bricks[c][r] = { x: 0, y: 0, status: 1 };
   }
-  //check for blocks collisions
-  
 }
 
+// Ball properties
+const ballRadius = 10;
+let ballX = canvasWidth / 2;
+let ballY = canvasHeight - paddleHeight - ballRadius - 10;
+let ballDX = 3;
+let ballDY = -3;
 
-function changeDirection(){
-  if(xDirection === 2 && yDirection === 2){
-    yDirection = -2
-    return
+// Game loop
+function draw() {
+  // Clear the canvas
+  context.clearRect(0, 0, canvasWidth, canvasHeight);
+
+  // Draw the bricks
+  for (let c = 0; c < brickColumnCount; c++) {
+    for (let r = 0; r < brickRowCount; r++) {
+      if (bricks[c][r].status === 1) {
+        const brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+        const brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+        bricks[c][r].x = brickX;
+        bricks[c][r].y = brickY;
+        context.beginPath();
+        context.rect(brickX, brickY, brickWidth, brickHeight);
+        context.fillStyle = '#0095DD';
+        context.fill();
+        context.closePath();
+      }
+    }
   }
-  if(xDirection === 2 && yDirection === -2){
-    xDirection = -2
-    return
+
+  // Draw the paddle
+  context.beginPath();
+  context.rect(paddle.x, paddle.y, paddle.width, paddle.height);
+  context.fillStyle = '#0095DD';
+  context.fill();
+  context.closePath();
+
+  // Draw the ball
+  context.beginPath();
+  context.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+  context.fillStyle = '#0095DD';
+  context.fill();
+  context.closePath();
+
+  // Move the ball
+  ballX += ballDX;
+  ballY += ballDY;
+
+  // Collision detection with bricks
+  for (let c = 0; c < brickColumnCount; c++) {
+    for (let r = 0; r < brickRowCount; r++) {
+      const brick = bricks[c][r];
+      if (brick.status === 1) {
+        if (
+          ballX > brick.x &&
+          ballX < brick.x + brickWidth &&
+          ballY > brick.y &&
+          ballY < brick.y + brickHeight
+        ) {
+          ballDY = -ballDY;
+          brick.status = 0;
+        }
+      }
+    }
   }
-  if(xDirection === -2 && yDirection === -2){
-    yDirection = 2
-    return
+
+  // Collision detection with walls
+  if (ballX + ballRadius > canvasWidth || ballX - ballRadius < 0) {
+    ballDX = -ballDX;
   }
-  if(xDirection === -2 && yDirection === 2){
-    xDirection = 2
-    return
+  if (ballY - ballRadius < 0) {
+    ballDY = -ballDY;
   }
-  
+
+  // Collision detection with paddle
+  if (
+    ballX > paddle.x &&
+    ballX < paddle.x + paddle.width &&
+    ballY + ballRadius > paddle.y &&
+    ballY + ballRadius < paddle.y + paddle.height
+  ) {
+    ballDY = -ballDY;
+  }
+
+  // Game over if ball hits the bottom wall
+  if (ballY + ballRadius > canvasHeight) {
+    alert('Game Over');
+    document.location.reload();
+  }
+
+  requestAnimationFrame(draw);
 }
 
-
-//check for gameover
-function checkForGameOver(){
-  if(ballCurrentPosition[1] <= 0){
-  clearInterval(timerId)
-  scoreDisplay.innerHTML = ' NOOB :) '
-  mydocumentbody.removeEventListener('keypress',blockMove)
-}
-}
-
+// Start the game loop
+draw();
